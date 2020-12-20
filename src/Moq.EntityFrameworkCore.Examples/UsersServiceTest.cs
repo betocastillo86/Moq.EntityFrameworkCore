@@ -1,13 +1,14 @@
 ﻿namespace Moq.EntityFrameworkCore.Examples
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
     using AutoFixture;
     using Moq.EntityFrameworkCore;
     using Moq.EntityFrameworkCore.Examples.Users;
     using Moq.EntityFrameworkCore.Examples.Users.Entities;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
     using Xunit;
-    using System.Linq;
 
     public class UsersServiceTest
     {
@@ -118,6 +119,49 @@
             userContextMock.SetupSequence(x => x.Set<User>())
                 .ReturnsDbSet(new List<User>())
                 .ReturnsDbSet(users);
+
+            var usersService = new UsersService(userContextMock.Object);
+
+            var user = users.FirstOrDefault();
+
+            //Act
+            var userToAssertWhenFirstCall = await usersService.FindOneUserAsync(x => x.Id == user.Id);
+            var userToAssertWhenSecondCall = await usersService.FindOneUserAsync(x => x.Id == user.Id);
+
+            //Assert
+            Assert.Null(userToAssertWhenFirstCall);
+            Assert.Equal(userToAssertWhenSecondCall, user);
+        }
+
+        [Fact]
+        public async Task Given_FunctionWithListOfUser_When_FindOneUserAsync_Then_CorrectUserIsReturned()
+        {
+            var users = GenerateNotLockedUsers();
+            Func<IList<User>> usersFunc = () => users;
+
+            var userContextMock = new Mock<UsersContext>();
+            userContextMock.Setup(x => x.Set<User>()).ReturnsDbSet(usersFunc);
+
+            var usersService = new UsersService(userContextMock.Object);
+            var user = users.FirstOrDefault();
+
+            //Act
+            var userToAssert = await usersService.FindOneUserAsync(x => x.Id == user.Id);
+
+            //Assert
+            Assert.Equal(userToAssert, user);
+        }
+
+        [Fact]
+        public async Task Given_Two_ListOfUserWithFuncUsers_Then_CorrectListIsReturned_InSequence()
+        {
+            var users = GenerateNotLockedUsers();
+            Func<IList<User>> usersFunc = () => users;
+
+            var userContextMock = new Mock<UsersContext>();
+            userContextMock.SetupSequence(x => x.Set<User>())
+                .ReturnsDbSet(new List<User>())
+                .ReturnsDbSet(usersFunc);
 
             var usersService = new UsersService(userContextMock.Object);
 

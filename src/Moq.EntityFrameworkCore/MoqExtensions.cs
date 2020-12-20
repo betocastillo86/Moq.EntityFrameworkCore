@@ -15,7 +15,16 @@
         {
             dbSetMock = dbSetMock ?? new Mock<DbSet<TEntity>>();
 
-            ConfigureMock(dbSetMock, entities);
+            ConfigureMock(dbSetMock, () => entities);
+
+            return setupResult.Returns(dbSetMock.Object);
+        }
+
+        public static IReturnsResult<T> ReturnsDbSet<T, TEntity>(this ISetup<T, DbSet<TEntity>> setupResult, Func<IEnumerable<TEntity>> entitiesFunc, Mock<DbSet<TEntity>> dbSetMock = null) where T : class where TEntity : class
+        {
+            dbSetMock = dbSetMock ?? new Mock<DbSet<TEntity>>();
+
+            ConfigureMock(dbSetMock, entitiesFunc);
 
             return setupResult.Returns(dbSetMock.Object);
         }
@@ -24,7 +33,16 @@
         {
             dbSetMock = dbSetMock ?? new Mock<DbSet<TEntity>>();
 
-            ConfigureMock(dbSetMock, entities);
+            ConfigureMock(dbSetMock, () => entities);
+
+            return setupResult.Returns(dbSetMock.Object);
+        }
+
+        public static ISetupSequentialResult<DbSet<TEntity>> ReturnsDbSet<TEntity>(this ISetupSequentialResult<DbSet<TEntity>> setupResult, Func<IEnumerable<TEntity>> entitiesFunc, Mock<DbSet<TEntity>> dbSetMock = null) where TEntity : class
+        {
+            dbSetMock = dbSetMock ?? new Mock<DbSet<TEntity>>();
+
+            ConfigureMock(dbSetMock, entitiesFunc);
 
             return setupResult.Returns(dbSetMock.Object);
         }
@@ -32,9 +50,9 @@
         /// <summary>
         /// Configures a Mock for a <see cref="DbSet{TEntity}"/> or a <see cref="DbQuery{TQuery}"/> so that it can be queriable via LINQ
         /// </summary>
-        private static void ConfigureMock<TEntity>(Mock dbSetMock, IEnumerable<TEntity> entities) where TEntity : class
+        private static void ConfigureMock<TEntity>(Mock dbSetMock, Func<IEnumerable<TEntity>> entitiesFunc) where TEntity : class
         {
-            var entitiesAsQueryable = entities.AsQueryable();
+            var entitiesAsQueryable = entitiesFunc.Invoke().AsQueryable();
 
             dbSetMock.As<IAsyncEnumerable<TEntity>>()
                .Setup(m => m.GetAsyncEnumerator(CancellationToken.None))
